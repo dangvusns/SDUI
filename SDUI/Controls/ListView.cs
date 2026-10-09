@@ -92,6 +92,22 @@ public class ListView : System.Windows.Forms.ListView
         ApplyTheme();
     }
 
+    // WinForms scales the list's bounds (on load and on DPI change) but not its column widths.
+    protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+    {
+        base.ScaleControl(factor, specified);
+
+        if ((specified & BoundsSpecified.Width) == 0 || factor.Width == 1f)
+            return;
+
+        foreach (ColumnHeader column in Columns)
+        {
+            // -1/-2 are the auto-size sentinels
+            if (column.Width > 0)
+                column.Width = (int)Math.Round(column.Width * factor.Width);
+        }
+    }
+
     protected override void OnNotifyMessage(Message m)
     {
         // Filter out WM_ERASEBKGND (0x14) to reduce flicker

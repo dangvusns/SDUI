@@ -347,9 +347,13 @@ public static class DrawingExtensions
 
     // GDI text (TextRenderer) so drawing matches TextRenderer.MeasureText used for AutoSize; always ends with
     // an ellipsis so text that does not fit is visibly shortened instead of silently cut.
-    public static TextFormatFlags CreateTextFormatFlags(this Control ctl, ContentAlignment textAlign, bool useMnemonic)
+    // SingleLine keeps one-line boxes from wrapping a clipped second line; wrap only text with explicit line
+    // breaks or text that is too wide for a box tall enough for several lines.
+    public static TextFormatFlags CreateTextFormatFlags(this Control ctl, string text, Rectangle bounds, ContentAlignment textAlign, bool useMnemonic)
     {
-        var flags = TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis;
+        var wrap = !string.IsNullOrEmpty(text) && (text.Contains('\n') ||
+            (bounds.Height >= ctl.Font.Height * 2 && TextRenderer.MeasureText(text, ctl.Font).Width > bounds.Width));
+        var flags = TextFormatFlags.EndEllipsis | (wrap ? TextFormatFlags.WordBreak : TextFormatFlags.SingleLine);
 
         if ((textAlign & anyRight) != 0)
             flags |= TextFormatFlags.Right;
@@ -377,7 +381,7 @@ public static class DrawingExtensions
         bool showEllipsis = false,
         bool useMnemonic = false
     ) => TextRenderer.DrawText(graphics, text, control.Font, control.ClientRectangle, control.ForeColor,
-        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
+        control.CreateTextFormatFlags(text, control.ClientRectangle, contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -386,7 +390,7 @@ public static class DrawingExtensions
         bool showEllipsis = false,
         bool useMnemonic = false
     ) => TextRenderer.DrawText(graphics, control.Text, control.Font, control.ClientRectangle, control.ForeColor,
-        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
+        control.CreateTextFormatFlags(control.Text, control.ClientRectangle, contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -396,7 +400,7 @@ public static class DrawingExtensions
         bool showEllipsis = false,
         bool useMnemonic = false
     ) => TextRenderer.DrawText(graphics, control.Text, control.Font, control.ClientRectangle, color,
-        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
+        control.CreateTextFormatFlags(control.Text, control.ClientRectangle, contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -407,7 +411,7 @@ public static class DrawingExtensions
         bool showEllipsis = false,
         bool useMnemonic = false
     ) => TextRenderer.DrawText(graphics, control.Text, control.Font, Rectangle.Round(rectangle), color,
-        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
+        control.CreateTextFormatFlags(control.Text, Rectangle.Round(rectangle), contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,

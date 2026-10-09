@@ -1393,13 +1393,13 @@ public class UIWindow : UIWindowBase
          // This prevents the animation from causing tab position shifts
          if (pageRect == null || pageRect.Count != _windowPageControl.Count)
          {
-             UpdateTabRects();
+             UpdateTabRects(graphics);
              _needsLayoutUpdate = false;
          }
          else if (_needsLayoutUpdate)
          {
              // Only update if explicitly needed (e.g., DPI change, size change)
-             UpdateTabRects();
+             UpdateTabRects(graphics);
              _needsLayoutUpdate = false;
          }
 
@@ -1476,12 +1476,7 @@ public class UIWindow : UIWindowBase
 
         // Draw tab headers
         using var foreBrush = foreColor.Brush();
-        using var defaultTabFormat = new StringFormat()
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            Trimming = StringTrimming.EllipsisCharacter,
-        };
+        using var defaultTabFormat = CreateTabFormat();
 
         for (int tabIdx = 0; tabIdx < _windowPageControl.Count; tabIdx++)
         {
@@ -1673,20 +1668,38 @@ public class UIWindow : UIWindowBase
                 pageAreaAnimationManager.SetProgress(0);
                 pageAreaAnimationManager.StartNewAnimation(AnimationDirection.In);
             };
-            _windowPageControl.ControlAdded += delegate
+            _windowPageControl.ControlAdded += (_, e) =>
             {
+                // Tab widths follow the titles, which are translated after the pages are added.
+                e.Control.TextChanged += OnPageTextChanged;
                 _needsLayoutUpdate = true;
                 Invalidate();
             };
-            _windowPageControl.ControlRemoved += delegate
+            _windowPageControl.ControlRemoved += (_, e) =>
             {
+                e.Control.TextChanged -= OnPageTextChanged;
                 _needsLayoutUpdate = true;
                 Invalidate();
             };
         }
     }
 
-     private void UpdateTabRects()
+    private void OnPageTextChanged(object sender, EventArgs e)
+    {
+        _needsLayoutUpdate = true;
+        Invalidate();
+    }
+
+    // Same format for measuring and drawing so a tab is exactly as wide as its single-line text needs.
+    private static StringFormat CreateTabFormat() => new()
+    {
+        Alignment = StringAlignment.Center,
+        LineAlignment = StringAlignment.Center,
+        Trimming = StringTrimming.EllipsisCharacter,
+        FormatFlags = StringFormatFlags.NoWrap,
+    };
+
+     private void UpdateTabRects(Graphics graphics)
      {
          if (pageRect == null)
              pageRect = new();
@@ -1728,9 +1741,28 @@ public class UIWindow : UIWindowBase
          if (tabAreaWidth > maxSize)
              tabAreaWidth = maxSize;
 
-         pageRect.Add(new(leftOffset, 0, tabAreaWidth, _cachedMetrics.TitleHeightDPI));
-         for (int i = 1; i < _windowPageControl.Count; i++)
-             pageRect.Add(new(pageRect[i - 1].Right, 0, tabAreaWidth, _cachedMetrics.TitleHeightDPI));
+         // Equal widths while every title fits; otherwise size tabs by their text (shrunk to the available width)
+         // so long titles are not wrapped or cut at high DPI.
+         using var format = CreateTabFormat();
+         var widths = new float[_windowPageControl.Count];
+         float totalWidth = 0;
+         for (int i = 0; i < widths.Length; i++)
+         {
+             var textWidth = graphics.MeasureString(_windowPageControl.GetPage(i).Text, Font, PointF.Empty, format).Width;
+             widths[i] = Math.Min(textWidth + 2 * TAB_HEADER_PADDING * DPI, maxSize);
+             totalWidth += widths[i];
+         }
+
+         var fitsEqual = Array.TrueForAll(widths, w => w <= tabAreaWidth);
+         var shrink = totalWidth > availableWidth ? availableWidth / totalWidth : 1f;
+
+         float tabX = leftOffset;
+         for (int i = 0; i < widths.Length; i++)
+         {
+             var tabWidth = fitsEqual ? tabAreaWidth : widths[i] * shrink;
+             pageRect.Add(new(tabX, 0, tabWidth, _cachedMetrics.TitleHeightDPI));
+             tabX += tabWidth;
+         }
 
          _needsLayoutUpdate = false;
      }
