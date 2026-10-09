@@ -10,19 +10,18 @@ namespace SDUI.Controls
 {
     public class CheckBox : System.Windows.Forms.CheckBox
     {
-        private const int CHECKBOX_SIZE = 16;
+        // Logical (96 DPI) sizes; scaled with LogicalToDeviceUnits so the box and text fit at 125%/175%.
+        private const int BOX_SIZE = 14;
+        private const int BOX_LEFT = 3;
+        private const int TEXT_GAP = 3;
 
-        private const int CHECKBOX_SIZE_HALF = CHECKBOX_SIZE / 2;
-
-        private static readonly Point[] CHECKMARK_LINE = { new(1, 6), new(5, 10), new(12, 3) };
+        private static readonly PointF[] CHECKMARK_LINE = { new(1, 6), new(5, 10), new(12, 3) };
 
         private readonly Animation.AnimationEngine animationManager;
 
         private readonly Animation.AnimationEngine rippleAnimationManager;
 
-        private int boxOffset;
-
-        private RectangleF boxRectangle;
+        private Rectangle boxRectangle;
 
         private bool ripple;
 
@@ -108,31 +107,18 @@ namespace SDUI.Controls
             MouseLocation = new Point(-1, -1);
         }
 
-        private Bitmap DrawCheckMarkBitmap()
-        {
-            var checkMark = new Bitmap(CHECKBOX_SIZE, CHECKBOX_SIZE);
-
-            using (var g = Graphics.FromImage(checkMark))
-            {
-                // clear everything, transparent
-                g.Clear(Color.Transparent);
-                // draw the checkmark lines
-                using var pen = new Pen(Enabled ? Color.White : Color.DarkGray, 2);
-                g.DrawLines(pen, CHECKMARK_LINE);
-            }
-
-            return checkMark;
-        }
-
         private bool IsMouseInCheckArea()
         {
             return boxRectangle.Contains(MouseLocation);
         }
 
+        private int TextLeft => LogicalToDeviceUnits(BOX_LEFT + BOX_SIZE + TEXT_GAP);
+
         public override Size GetPreferredSize(Size proposedSize)
         {
-            int w = boxOffset + CHECKBOX_SIZE + 2 + TextRenderer.MeasureText(Text, Font).Width;
-            return Ripple ? new Size(w, 30) : new Size(w, 20);
+            var w = TextLeft + TextRenderer.MeasureText(Text, Font).Width + LogicalToDeviceUnits(2);
+            var h = Math.Max(LogicalToDeviceUnits(Ripple ? 30 : 20), Font.Height + LogicalToDeviceUnits(4));
+            return new Size(w, h);
         }
 
         protected override void OnCreateControl()
@@ -192,7 +178,7 @@ namespace SDUI.Controls
 
             CheckBoxRenderer.DrawParentBackground(pevent.Graphics, ClientRectangle, this);
 
-            var CHECKBOX_CENTER = boxOffset + CHECKBOX_SIZE_HALF - 1;
+            var box = boxRectangle;
 
             double animationProgress = animationManager.GetProgress();
 
@@ -214,7 +200,7 @@ namespace SDUI.Controls
                 for (int i = 0; i < rippleAnimationManager.GetAnimationCount(); i++)
                 {
                     var animationValue = rippleAnimationManager.GetProgress(i);
-                    var animationSource = new Point(CHECKBOX_CENTER, CHECKBOX_CENTER);
+                    var animationSource = new Point(box.X + box.Width / 2, box.Y + box.Height / 2);
                     using var rippleBrush = new SolidBrush(
                         Color.FromArgb(
                             (int)((animationValue * 40)),
@@ -238,25 +224,31 @@ namespace SDUI.Controls
                 }
             }
 
-            var checkMarkLineFill = new Rectangle(boxOffset, boxOffset, (int)(14.0 * animationProgress), 14);
-            using (var checkmarkPath = DrawingExtensions.CreateRoundPath(boxOffset, boxOffset, 14, 14, 2))
+            var radius = Math.Max(2, LogicalToDeviceUnits(2));
+            using (var checkmarkPath = DrawingExtensions.CreateRoundPath(box.X, box.Y, box.Width, box.Height, radius))
+            using (var borderBrush = new SolidBrush(ColorScheme.BorderColor))
+            using (var borderPen = new Pen(ColorScheme.BorderColor))
             {
-                using var brush2 = new SolidBrush(
-                    ColorScheme.BackColor.BlendWith(
-                        Enabled ? ColorScheme.BorderColor : disabledOffColor,
-                        backgroundAlpha
-                    )
-                );
-                using var pen2 = new Pen(brush2.Color);
-
-                graphics.FillPath(ColorScheme.BorderColor.Brush(), checkmarkPath);
-                graphics.DrawPath(ColorScheme.BorderColor.Pen(), checkmarkPath);
-                //graphics.DrawShadow(boxRectangle, 2, 1);
+                graphics.FillPath(borderBrush, checkmarkPath);
+                graphics.DrawPath(borderPen, checkmarkPath);
 
                 graphics.FillPath(brush, checkmarkPath);
                 graphics.DrawPath(pen, checkmarkPath);
+            }
 
-                graphics.DrawImageUnscaledAndClipped(DrawCheckMarkBitmap(), checkMarkLineFill);
+            if (animationProgress > 0)
+            {
+                // Check mark revealed left-to-right with the (instant when animations are off) progress
+                var scale = box.Width / (float)BOX_SIZE;
+                var points = new PointF[CHECKMARK_LINE.Length];
+                for (var i = 0; i < points.Length; i++)
+                    points[i] = new PointF(box.X + CHECKMARK_LINE[i].X * scale, box.Y + CHECKMARK_LINE[i].Y * scale);
+
+                using var clip = graphics.Clip;
+                graphics.SetClip(new RectangleF(box.X, box.Y, (float)(box.Width * animationProgress), box.Height));
+                using var markPen = new Pen(Enabled ? Color.White : Color.DarkGray, Math.Max(2f, 2 * scale));
+                graphics.DrawLines(markPen, points);
+                graphics.Clip = clip;
             }
 
             // draw checkbox text
@@ -266,7 +258,7 @@ namespace SDUI.Controls
                 graphics,
                 TextAlign,
                 textColor,
-                new RectangleF(new Point(boxOffset + CHECKBOX_SIZE, 0), ClientRectangle.Size)
+                new RectangleF(TextLeft, 0, Math.Max(0, Width - TextLeft), Height)
             );
 
             if (ColorScheme.DrawDebugBorders)
@@ -281,8 +273,19 @@ namespace SDUI.Controls
         {
             base.OnSizeChanged(e);
 
-            boxOffset = Height / 2 - 7;
-            boxRectangle = new Rectangle(boxOffset, boxOffset, CHECKBOX_SIZE - 1, CHECKBOX_SIZE - 1);
+            UpdateBoxRectangle();
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            base.OnDpiChangedAfterParent(e);
+            UpdateBoxRectangle();
+        }
+
+        private void UpdateBoxRectangle()
+        {
+            var size = LogicalToDeviceUnits(BOX_SIZE);
+            boxRectangle = new Rectangle(LogicalToDeviceUnits(BOX_LEFT), (Height - size) / 2, size, size);
         }
     }
 }

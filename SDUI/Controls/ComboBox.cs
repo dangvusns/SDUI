@@ -152,7 +152,7 @@ public class ComboBox : System.Windows.Forms.ComboBox
         var inflate = _shadowDepth / 4f;
         //rectf.Inflate(-inflate, -inflate);
 
-        var textRectangle = new Rectangle(3 * (DeviceDpi / 96), 0, Width - (18 * (DeviceDpi / 96)), Height);
+        var textRectangle = new Rectangle(LogicalToDeviceUnits(3), 0, Width - LogicalToDeviceUnits(18), Height);
 
         var backColor = ColorScheme.BackColor.Alpha(100);
         var borderColor = ColorScheme.BorderColor;
@@ -163,27 +163,27 @@ public class ComboBox : System.Windows.Forms.ComboBox
         e.Graphics.FillPath(backBrush, path);
 
         var _extendBoxRect = new RectangleF(
-            rectf.Width - (24f * (DeviceDpi / 96)),
+            rectf.Width - (24f * (DeviceDpi / 96f)),
             0,
-            (16 * (DeviceDpi / 96)),
+            (16 * (DeviceDpi / 96f)),
             rectf.Height
         );
 
         using var symbolPen = new Pen(ColorScheme.ForeColor);
         graphics.DrawLine(
             symbolPen,
-            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (5 * (DeviceDpi / 96)) - 1,
-            _extendBoxRect.Top + _extendBoxRect.Height / 2 - (2 * (DeviceDpi / 96)),
-            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (1 * (DeviceDpi / 96)),
-            _extendBoxRect.Top + _extendBoxRect.Height / 2 + (3 * (DeviceDpi / 96))
+            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (5 * (DeviceDpi / 96f)) - 1,
+            _extendBoxRect.Top + _extendBoxRect.Height / 2 - (2 * (DeviceDpi / 96f)),
+            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (1 * (DeviceDpi / 96f)),
+            _extendBoxRect.Top + _extendBoxRect.Height / 2 + (3 * (DeviceDpi / 96f))
         );
 
         graphics.DrawLine(
             symbolPen,
-            _extendBoxRect.Left + _extendBoxRect.Width / 2 + (5 * (DeviceDpi / 96)) - 1,
-            _extendBoxRect.Top + _extendBoxRect.Height / 2 - (2 * (DeviceDpi / 96)),
-            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (1 * (DeviceDpi / 96)),
-            _extendBoxRect.Top + _extendBoxRect.Height / 2 + (3 * (DeviceDpi / 96))
+            _extendBoxRect.Left + _extendBoxRect.Width / 2 + (5 * (DeviceDpi / 96f)) - 1,
+            _extendBoxRect.Top + _extendBoxRect.Height / 2 - (2 * (DeviceDpi / 96f)),
+            _extendBoxRect.Left + _extendBoxRect.Width / 2 - (1 * (DeviceDpi / 96f)),
+            _extendBoxRect.Top + _extendBoxRect.Height / 2 + (3 * (DeviceDpi / 96f))
         );
 
         graphics.DrawShadow(rectf, _shadowDepth, _radius);

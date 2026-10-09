@@ -347,7 +347,9 @@ public class Button : System.Windows.Forms.Button
             // 4 is for the space between icon & text
             extra += 24 + 4;
 
-        // Grows with the (DPI-scaled) font; 23 keeps the original height at 100%.
-        return new Size((int)Math.Ceiling(textSize.Width) + extra, Math.Max(23, Font.Height + 8));
+        // Measured now (not the cached textSize) so a DPI change re-sizes AutoSize buttons;
+        // height grows with the DPI-scaled font, 23 keeps the original height at 100%.
+        var width = TextRenderer.MeasureText(Text, Font).Width + LogicalToDeviceUnits(extra);
+        return new Size(width, Math.Max(LogicalToDeviceUnits(23), Font.Height + LogicalToDeviceUnits(8)));
     }
 }

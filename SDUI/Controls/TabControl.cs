@@ -47,9 +47,20 @@ public class TabControl : System.Windows.Forms.TabControl
         base.CreateHandle();
 
         if (SizeMode != TabSizeMode.Fixed)
-            ItemSize = new Size(80, 24);
+            ItemSize = TabItemSize();
 
         Alignment = TabAlignment.Top;
+    }
+
+    // Tab height follows the DPI-scaled font so captions are not cut at 125%/175%.
+    private Size TabItemSize() =>
+        new(LogicalToDeviceUnits(80), Math.Max(LogicalToDeviceUnits(24), Font.Height + LogicalToDeviceUnits(8)));
+
+    protected override void OnDpiChangedAfterParent(EventArgs e)
+    {
+        base.OnDpiChangedAfterParent(e);
+        if (IsHandleCreated && SizeMode != TabSizeMode.Fixed)
+            ItemSize = TabItemSize();
     }
 
     protected override void WndProc(ref Message m)

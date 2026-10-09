@@ -10,21 +10,16 @@ namespace SDUI.Controls;
 
 public class Radio : RadioButton
 {
-    private const int RADIOBUTTON_INNER_CIRCLE_SIZE = RADIOBUTTON_SIZE - (2 * RADIOBUTTON_OUTER_CIRCLE_WIDTH);
-
-    private const int RADIOBUTTON_OUTER_CIRCLE_WIDTH = 1;
-
-    // size constants
+    // Logical (96 DPI) sizes; scaled with LogicalToDeviceUnits so the circle and text fit at 125%/175%.
     private const int RADIOBUTTON_SIZE = 15;
-
-    private const int RADIOBUTTON_SIZE_HALF = RADIOBUTTON_SIZE / 2;
+    private const int BOX_LEFT = 3;
+    private const int TEXT_GAP = 3;
 
     // animation managers
     private readonly Animation.AnimationEngine animationManager;
 
     private readonly Animation.AnimationEngine rippleAnimationManager;
 
-    private int boxOffset;
     private int _mouseState;
 
     // size related variables which should be recalculated onsizechanged
@@ -88,10 +83,13 @@ public class Radio : RadioButton
         _mouseLocation = new Point(-1, -1);
     }
 
+    private int TextLeft => LogicalToDeviceUnits(BOX_LEFT + RADIOBUTTON_SIZE + TEXT_GAP);
+
     public override Size GetPreferredSize(Size proposedSize)
     {
-        var width = boxOffset + 20 + TextRenderer.MeasureText(Text, Font).Width;
-        return Ripple ? new Size(width, 30) : new Size(width, 20);
+        var width = TextLeft + TextRenderer.MeasureText(Text, Font).Width + LogicalToDeviceUnits(2);
+        var height = Math.Max(LogicalToDeviceUnits(Ripple ? 30 : 20), Font.Height + LogicalToDeviceUnits(4));
+        return new Size(width, height);
     }
 
     protected override void OnCreateControl()
@@ -150,7 +148,9 @@ public class Radio : RadioButton
 
         RadioButtonRenderer.DrawParentBackground(pevent.Graphics, pevent.ClipRectangle, this);
 
-        var RADIOBUTTON_CENTER = boxOffset + RADIOBUTTON_SIZE_HALF;
+        var box = radioButtonBounds;
+        var centerX = box.X + box.Width / 2f;
+        var centerY = box.Y + box.Height / 2f;
 
         var animationProgress = animationManager.GetProgress();
 
@@ -160,9 +160,7 @@ public class Radio : RadioButton
         var backgroundAlpha = Enabled
             ? (int)(ColorScheme.BorderColor.A * (1.0 - animationProgress))
             : disabledOffColor.A;
-        var animationSize = (float)(animationProgress * 8f);
-        var animationSizeHalf = animationSize / 2;
-        animationSize = (float)(animationProgress * 9f);
+        var animationSize = (float)(animationProgress * box.Width * 0.6f);
 
         using var brush = new SolidBrush(
             Color.FromArgb(colorAlpha, Enabled ? ColorScheme.AccentColor : disabledOffColor)
@@ -175,7 +173,7 @@ public class Radio : RadioButton
             for (int i = 0; i < rippleAnimationManager.GetAnimationCount(); i++)
             {
                 var animationValue = rippleAnimationManager.GetProgress(i);
-                var animationSource = new Point(RADIOBUTTON_CENTER, RADIOBUTTON_CENTER);
+                var animationSource = new Point((int)centerX, (int)centerY);
 
                 using var rippleBrush = new SolidBrush(
                     Color.FromArgb(
@@ -201,49 +199,22 @@ public class Radio : RadioButton
         }
 
         using var ellipseBrush = new SolidBrush(ColorScheme.BorderColor);
+        graphics.FillEllipse(ellipseBrush, box);
 
-        graphics.FillEllipse(ellipseBrush, boxOffset, boxOffset, RADIOBUTTON_SIZE, RADIOBUTTON_SIZE);
+        // draw radiobutton circle
+        using var uncheckedBrush = new SolidBrush(
+            ColorScheme.BackColor.BlendWith(Enabled ? ColorScheme.BorderColor : disabledOffColor, backgroundAlpha)
+        );
+        var inner = Rectangle.Inflate(box, -1, -1);
+        graphics.FillEllipse(uncheckedBrush, inner);
 
-        using (
-            var path = DrawingExtensions.CreateRoundPath(boxOffset, boxOffset, RADIOBUTTON_SIZE, RADIOBUTTON_SIZE, 7)
-        )
+        if (Enabled)
+            graphics.FillEllipse(brush, box);
+
+        if (Checked && animationSize > 0)
         {
-            // draw radiobutton circle
-            var uncheckedColor = ColorScheme.BackColor.BlendWith(
-                Enabled ? ColorScheme.BorderColor : disabledOffColor,
-                backgroundAlpha
-            );
-
-            using var brush2 = new SolidBrush(uncheckedColor);
-            //graphics.FillPath(brush2, path);
-
-            graphics.FillEllipse(
-                brush2,
-                boxOffset,
-                boxOffset,
-                RADIOBUTTON_INNER_CIRCLE_SIZE,
-                RADIOBUTTON_INNER_CIRCLE_SIZE
-            );
-
-            if (Enabled)
-                graphics.FillEllipse(brush, boxOffset, boxOffset, RADIOBUTTON_SIZE, RADIOBUTTON_SIZE);
-
-            //
-            //    graphics.FillPath(brush, path);
-        }
-
-        if (Checked)
-        {
-            using (
-                var path = DrawingExtensions.CreateRoundPath(
-                    RADIOBUTTON_CENTER - animationSizeHalf,
-                    RADIOBUTTON_CENTER - animationSizeHalf,
-                    animationSize,
-                    animationSize,
-                    7
-                )
-            )
-                graphics.FillPath(brush, path);
+            using var dotBrush = new SolidBrush(Color.White);
+            graphics.FillEllipse(dotBrush, centerX - animationSize / 2, centerY - animationSize / 2, animationSize, animationSize);
         }
 
         var textColor = Enabled ? ColorScheme.ForeColor : Color.Gray;
@@ -252,7 +223,7 @@ public class Radio : RadioButton
             graphics,
             TextAlign,
             textColor,
-            new RectangleF(new Point(boxOffset + RADIOBUTTON_SIZE, 0), ClientRectangle.Size)
+            new RectangleF(TextLeft, 0, Math.Max(0, Width - TextLeft), Height)
         );
     }
 
@@ -263,7 +234,18 @@ public class Radio : RadioButton
 
     private void OnSizeChanged(object sender, EventArgs eventArgs)
     {
-        boxOffset = Height / 2 - (int)Math.Ceiling(RADIOBUTTON_SIZE / 2d);
-        radioButtonBounds = new Rectangle(boxOffset, boxOffset, RADIOBUTTON_SIZE, RADIOBUTTON_SIZE);
+        UpdateCircleBounds();
+    }
+
+    protected override void OnDpiChangedAfterParent(EventArgs e)
+    {
+        base.OnDpiChangedAfterParent(e);
+        UpdateCircleBounds();
+    }
+
+    private void UpdateCircleBounds()
+    {
+        var size = LogicalToDeviceUnits(RADIOBUTTON_SIZE);
+        radioButtonBounds = new Rectangle(LogicalToDeviceUnits(BOX_LEFT), (Height - size) / 2, size, size);
     }
 }
