@@ -97,7 +97,7 @@ namespace SDUI.Controls
             btnOK.Location = new System.Drawing.Point(11, 6);
             btnOK.Name = "btnOK";
             btnOK.Radius = 6;
-            btnOK.ShadowDepth = 4F;
+            btnOK.ShadowDepth = 0F;
             btnOK.Size = new System.Drawing.Size(106, 29);
             btnOK.TabIndex = 0;
             btnOK.Text = "OK";
@@ -112,7 +112,7 @@ namespace SDUI.Controls
             btnCancel.Location = new System.Drawing.Point(223, 6);
             btnCancel.Name = "btnCancel";
             btnCancel.Radius = 6;
-            btnCancel.ShadowDepth = 4F;
+            btnCancel.ShadowDepth = 0F;
             btnCancel.Size = new System.Drawing.Size(91, 29);
             btnCancel.TabIndex = 1;
             btnCancel.Text = "Cancel";
@@ -129,7 +129,7 @@ namespace SDUI.Controls
             comboBox.Location = new System.Drawing.Point(12, 80);
             comboBox.Name = "comboBox";
             comboBox.Radius = 5;
-            comboBox.ShadowDepth = 4F;
+            comboBox.ShadowDepth = 0F;
             comboBox.Size = new System.Drawing.Size(277, 29);
             comboBox.TabIndex = 4;
             comboBox.Visible = false;
@@ -160,7 +160,7 @@ namespace SDUI.Controls
             panel1.Location = new System.Drawing.Point(0, 125);
             panel1.Name = "panel1";
             panel1.Radius = 0;
-            panel1.ShadowDepth = 4F;
+            panel1.ShadowDepth = 0F;
             panel1.Size = new System.Drawing.Size(324, 39);
             panel1.TabIndex = 6;
             // 

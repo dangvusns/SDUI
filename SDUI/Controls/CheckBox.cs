@@ -104,7 +104,7 @@ namespace SDUI.Controls
                 animationManager.StartNewAnimation(Checked ? AnimationDirection.In : AnimationDirection.Out);
             };
 
-            Ripple = true;
+            Ripple = false;
             MouseLocation = new Point(-1, -1);
         }
 

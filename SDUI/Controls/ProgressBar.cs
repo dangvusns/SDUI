@@ -14,6 +14,9 @@ public class ProgressBar : Control
         get => _value;
         set
         {
+            if (_value == value)
+                return;
+
             _value = value;
             Invalidate();
         }
@@ -25,12 +28,11 @@ public class ProgressBar : Control
         get => _maximum;
         set
         {
-            _maximum = value;
-            if (value > 0)
-                _maximum = value;
-            else
-                _maximum = 1;
+            var maximum = value > 0 ? value : 1;
+            if (_maximum == maximum)
+                return;
 
+            _maximum = maximum;
             Invalidate();
         }
     }
@@ -188,45 +190,50 @@ public class ProgressBar : Control
             _gradient[1],
             90
         );
-        using var hatchBrush = new HatchBrush(
-            HatchType,
-            Color.FromArgb(50, _gradient[0]),
-            Color.FromArgb(50, _gradient[1])
-        );
 
         var rect = ClientRectangle.ToRectangleF();
 
         using (var path = rect.Radius(_radius))
-            graphics.FillPath(new SolidBrush(ColorScheme.BorderColor), path);
+        using (var borderBrush = new SolidBrush(ColorScheme.BorderColor))
+            graphics.FillPath(borderBrush, path);
 
         if (intValue != 0)
         {
             var rectValue = new RectangleF(rect.X, rect.Y, intValue, rect.Height - 1);
             using var path = rectValue.Radius(_radius);
             graphics.FillPath(linearGradientBrush, path);
-            graphics.FillPath(hatchBrush, path);
+
+            if (_drawHatch)
+            {
+                using var hatchBrush = new HatchBrush(
+                    HatchType,
+                    Color.FromArgb(50, _gradient[0]),
+                    Color.FromArgb(50, _gradient[1])
+                );
+                graphics.FillPath(hatchBrush, path);
+            }
         }
 
-        graphics.DrawPath(
-            new Pen(Color.FromArgb(10, Parent.BackColor.Determine())),
-            new Rectangle(0, 0, Width - 1, Height - 1).Radius(_radius)
-        );
+        using (var outlinePen = new Pen(Color.FromArgb(10, Parent.BackColor.Determine())))
+        using (var outlinePath = new Rectangle(0, 0, Width - 1, Height - 1).Radius(_radius))
+            graphics.DrawPath(outlinePen, outlinePath);
 
         if (ShowValue)
         {
-            e.Graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
             var textShadowColor = ColorScheme.ForeColor.Determine();
             var textColor = ColorScheme.ForeColor;
 
+            // Local text: assigning Control.Text here sent a window message on every paint.
+            string text;
             if (_showAsPercent)
             {
                 if (percent == 100)
                     percent = _maxPercentShowValue;
 
-                Text = percent.ToString($"0.{"0".PadRight(_percentIndices, '0')}") + "%";
+                text = percent.ToString($"0.{"0".PadRight(_percentIndices, '0')}") + "%";
             }
             else
-                Text = $"{_value} / {_maximum}";
+                text = $"{_value} / {_maximum}";
 
             if (percent > 50)
             {
@@ -234,26 +241,11 @@ public class ProgressBar : Control
                 textShadowColor = Color.Black;
             }
 
-            // draw shadow
-            var shadowBrush = new SolidBrush(textShadowColor);
-            e.Graphics.DrawString(
-                Text,
-                Font,
-                shadowBrush,
-                new Rectangle(1, 1, Width, Height),
-                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-            );
+            const TextFormatFlags flags =
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
 
-            shadowBrush.Dispose();
-            // draw text
-            var textBrush = new SolidBrush(textColor);
-            e.Graphics.DrawString(
-                Text,
-                Font,
-                textBrush,
-                new Rectangle(0, 0, Width, Height),
-                new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }
-            );
+            TextRenderer.DrawText(graphics, text, Font, new Rectangle(1, 1, Width, Height), textShadowColor, flags);
+            TextRenderer.DrawText(graphics, text, Font, new Rectangle(0, 0, Width, Height), textColor, flags);
         }
     }
 }

@@ -51,7 +51,7 @@ public class FlowLayoutPanel : System.Windows.Forms.FlowLayoutPanel
         }
     }
 
-    private float _shadowDepth = 4;
+    private float _shadowDepth = 0;
     public float ShadowDepth
     {
         get => _shadowDepth;

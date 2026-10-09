@@ -386,7 +386,7 @@ public class UIWindowBase : Form
         _themeFrom = BackColor;
         _themeTo = target;
         _themeStep = 0;
-        _themeTotalSteps = Math.Max(1, ThemeDurationMs / ThemeIntervalMs);
+        _themeTotalSteps = SystemAnimations.AreAnimationsEnabled ? Math.Max(1, ThemeDurationMs / ThemeIntervalMs) : 1;
 
         // Apply native dark/light mode immediately so scrollbars switch early
         if (WindowsHelper.IsModern)

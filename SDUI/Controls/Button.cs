@@ -47,7 +47,7 @@ public class Button : System.Windows.Forms.Button
         }
     }
 
-    private float _shadowDepth = 4f;
+    private float _shadowDepth = 0;
     public float ShadowDepth
     {
         get => _shadowDepth;
@@ -347,6 +347,7 @@ public class Button : System.Windows.Forms.Button
             // 4 is for the space between icon & text
             extra += 24 + 4;
 
-        return new Size((int)Math.Ceiling(textSize.Width) + extra, 23);
+        // Grows with the (DPI-scaled) font; 23 keeps the original height at 100%.
+        return new Size((int)Math.Ceiling(textSize.Width) + extra, Math.Max(23, Font.Height + 8));
     }
 }

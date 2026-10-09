@@ -345,6 +345,30 @@ public static class DrawingExtensions
         return format;
     }
 
+    // GDI text (TextRenderer) so drawing matches TextRenderer.MeasureText used for AutoSize; always ends with
+    // an ellipsis so text that does not fit is visibly shortened instead of silently cut.
+    public static TextFormatFlags CreateTextFormatFlags(this Control ctl, ContentAlignment textAlign, bool useMnemonic)
+    {
+        var flags = TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis;
+
+        if ((textAlign & anyRight) != 0)
+            flags |= TextFormatFlags.Right;
+        else if ((textAlign & anyCenter) != 0)
+            flags |= TextFormatFlags.HorizontalCenter;
+
+        if ((textAlign & anyBottom) != 0)
+            flags |= TextFormatFlags.Bottom;
+        else if ((textAlign & anyMiddle) != 0)
+            flags |= TextFormatFlags.VerticalCenter;
+
+        flags |= useMnemonic ? TextFormatFlags.HidePrefix : TextFormatFlags.NoPrefix;
+
+        if (ctl.RightToLeft == RightToLeft.Yes)
+            flags |= TextFormatFlags.RightToLeft;
+
+        return flags;
+    }
+
     public static void DrawString(
         this Control control,
         string text,
@@ -352,14 +376,8 @@ public static class DrawingExtensions
         ContentAlignment contentAlignment,
         bool showEllipsis = false,
         bool useMnemonic = false
-    )
-    {
-        graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
-        using var textFormat = control.CreateStringFormat(contentAlignment, showEllipsis, useMnemonic);
-        using var textBrush = new SolidBrush(control.ForeColor);
-
-        graphics.DrawString(text, control.Font, textBrush, control.ClientRectangle, textFormat);
-    }
+    ) => TextRenderer.DrawText(graphics, text, control.Font, control.ClientRectangle, control.ForeColor,
+        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -367,14 +385,8 @@ public static class DrawingExtensions
         ContentAlignment contentAlignment,
         bool showEllipsis = false,
         bool useMnemonic = false
-    )
-    {
-        graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
-        using var textFormat = control.CreateStringFormat(contentAlignment, showEllipsis, useMnemonic);
-        using var textBrush = new SolidBrush(control.ForeColor);
-
-        graphics.DrawString(control.Text, control.Font, textBrush, control.ClientRectangle, textFormat);
-    }
+    ) => TextRenderer.DrawText(graphics, control.Text, control.Font, control.ClientRectangle, control.ForeColor,
+        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -383,14 +395,8 @@ public static class DrawingExtensions
         Color color,
         bool showEllipsis = false,
         bool useMnemonic = false
-    )
-    {
-        graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
-        using var textFormat = control.CreateStringFormat(contentAlignment, showEllipsis, useMnemonic);
-        using var textBrush = new SolidBrush(color);
-
-        graphics.DrawString(control.Text, control.Font, textBrush, control.ClientRectangle, textFormat);
-    }
+    ) => TextRenderer.DrawText(graphics, control.Text, control.Font, control.ClientRectangle, color,
+        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,
@@ -400,14 +406,8 @@ public static class DrawingExtensions
         RectangleF rectangle,
         bool showEllipsis = false,
         bool useMnemonic = false
-    )
-    {
-        graphics.TextRenderingHint = TextRenderingHint.SystemDefault;
-        using var textFormat = control.CreateStringFormat(contentAlignment, showEllipsis, useMnemonic);
-        using var textBrush = new SolidBrush(color);
-
-        graphics.DrawString(control.Text, control.Font, textBrush, rectangle, textFormat);
-    }
+    ) => TextRenderer.DrawText(graphics, control.Text, control.Font, Rectangle.Round(rectangle), color,
+        control.CreateTextFormatFlags(contentAlignment, useMnemonic));
 
     public static void DrawString(
         this Control control,

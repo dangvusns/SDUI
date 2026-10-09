@@ -25,7 +25,10 @@ namespace SDUI.Helpers
 
         private static readonly bool _areAnimationsEnabled = GetAreAnimationsEnabled();
 
-        public static bool AreAnimationsEnabled => _areAnimationsEnabled;
+        /// <summary>Set by the host app to turn off every SDUI animation regardless of the OS setting.</summary>
+        public static bool Disabled { get; set; }
+
+        public static bool AreAnimationsEnabled => !Disabled && _areAnimationsEnabled;
 
         private static bool GetAreAnimationsEnabled()
         {

@@ -8,7 +8,7 @@ namespace SDUI.Controls;
 
 public class GroupBox : System.Windows.Forms.GroupBox
 {
-    private int _shadowDepth = 4;
+    private int _shadowDepth = 0;
     public int ShadowDepth
     {
         get => _shadowDepth;

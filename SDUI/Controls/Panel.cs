@@ -51,7 +51,7 @@ public class Panel : System.Windows.Forms.Panel
         }
     }
 
-    private float _shadowDepth = 4;
+    private float _shadowDepth = 0;
     public float ShadowDepth
     {
         get => _shadowDepth;

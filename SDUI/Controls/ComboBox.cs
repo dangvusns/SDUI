@@ -21,7 +21,7 @@ public class ComboBox : System.Windows.Forms.ComboBox
         }
     }
 
-    private float _shadowDepth = 4f;
+    private float _shadowDepth = 0;
     public float ShadowDepth
     {
         get => _shadowDepth;
@@ -166,7 +166,7 @@ public class ComboBox : System.Windows.Forms.ComboBox
             rectf.Width - (24f * (DeviceDpi / 96)),
             0,
             (16 * (DeviceDpi / 96)),
-            rectf.Height - (4 * (DeviceDpi / 96)) + _shadowDepth
+            rectf.Height
         );
 
         using var symbolPen = new Pen(ColorScheme.ForeColor);

@@ -84,13 +84,13 @@ public class Radio : RadioButton
 
         SizeChanged += OnSizeChanged;
 
-        Ripple = true;
+        Ripple = false;
         _mouseLocation = new Point(-1, -1);
     }
 
     public override Size GetPreferredSize(Size proposedSize)
     {
-        var width = boxOffset + 20 + (int)CreateGraphics().MeasureString(Text, Font).Width;
+        var width = boxOffset + 20 + TextRenderer.MeasureText(Text, Font).Width;
         return Ripple ? new Size(width, 30) : new Size(width, 20);
     }
 
